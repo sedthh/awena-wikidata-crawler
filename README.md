@@ -8,9 +8,9 @@ Awena lets you search for names, labels, etc. and use their ids to load their in
 import awena
 
 query		= 'Einstein'
-crawler		= awena.Crawler('en') # set language of results
-id		= crawler.search(query)	# will return "Q937"
-info		= crawler.load(id)
+crawler		= awena.Crawler('en') # set language of labels and descriptions
+qid		= crawler.search(query)	# will return "Q937"
+info		= crawler.load(qid)
 print(info)
 	
 >>> {
@@ -31,7 +31,7 @@ print(info)
 >>> }
 ```
 
-Some values are also valid ids, that you can use the same way to receive information about them:
+Some values are also valid ids (letter Q followed by numbers), which you can use the same way to receive information about them:
 
 ```python
 citizen_of	= crawler.load(info["citizen"])
@@ -44,3 +44,4 @@ print(citizen_of)
 
 ```
 
+Returned list of keys in dict depends on the information available on the topic.
