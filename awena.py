@@ -37,7 +37,9 @@ class Crawler:
 	def search(self, query):
 		return self._request(query,False)
 		
-	def load(self,id):
+	def load(self,id=None):
+		if not id:
+			return {}
 		if id not in self.cache:
 			data		= self._request(False,id)
 			self.cache[id]= self._parse(data,id)
@@ -71,7 +73,9 @@ class Crawler:
 		elif id and "entities" in result and result["entities"]:
 			if id in result["entities"] and result["entities"][id]:
 				return result["entities"][id]
-		return {}
+		if query:
+			return {}
+		return None
 		
 	def _parse(self,data,id):
 		result	= {"id":id}
@@ -115,17 +119,59 @@ class Crawler:
 						result["place_of_death"]= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=="P509":	# cause of death
 						result["cause_of_death"]= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
-					#locations
+					# locations
 					elif key=="P30":	# continent
 						result["continent"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=="P17":	# country
 						result["country"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+					elif key=="P36":	# capital
+						result["capital"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=='P625':	# coordinate location
 						result['coordinates']		= str(data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["latitude"])+" "+str(data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["longitude"])
 					elif key=='P1082':#population
 						result["population"]		= float(data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:])
 					elif key=='P2046':#area
 						if "Q712226" in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: #km2
-							result["population"]		= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:]+" km2"
+							result["area"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:]+" km2"
+					elif key=="P2049":#width
+						result["width"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:]
+						if "Q828224" in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
+							result["width"]				+= " km"
+						elif "Q11573"in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
+							result["width"]				+= " m"
+					elif key=="P2043":#length
+						result["length"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:]
+						if "Q828224" in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
+							result["length"]				+= " km"
+						elif "Q11573"in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
+							result["length"]				+= " m"
+					elif key=="P2044":#elevation above sea level
+						result["height"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:]
+						if "Q828224" in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
+							result["height"]				+= " km"
+						elif "Q11573"in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
+							result["height"]				+= " m"
+					# animals
+					elif key=="P4733":# produced sound
+						result["sound"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+					elif key=="P225":	# taxon name
+						result["latin"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]
+					# other
+					elif key=="P487":	# unicode character
+						result["emoji"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]
+					elif key=="P837":	# day in year for periodic occurance
+						result["date"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+					elif key=="P571":	# inception
+						result["start_date"]		= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["time"]
+					elif key=="P580":	# start time
+						result["start_date"]		= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["time"]
+					elif key=="P582":	# end time
+						result["end_date"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["time"]
+					elif key=="P169":	# chef executive officer
+						result["leader"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+					elif key=="P6":	# head of government
+						result["leader"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+					elif key=="P1120":# number of deaths
+						result["deaths"]				= float(data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:])
 		return result		
 					
