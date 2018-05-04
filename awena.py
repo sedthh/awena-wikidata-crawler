@@ -11,7 +11,7 @@ class Crawler:
 
 	##### CONSTRUCTOR #####
 	def __init__(self,	lang='en'):
-		self.lang				= lang
+		self.lang				= lang.lower()
 		self.cache				= {}
 		
 	##### DATA MODEL #####
@@ -51,25 +51,35 @@ class Crawler:
 		}
 		if id:
 			params	= {
-				"action"			: "wbgetentities",
-				"ids"				: id,
-				"language"	: self.lang,
+				"action"		: "wbgetentities",
+				"ids"			: id,
+				"language"		: self.lang,
 				"format"		: "json"
 			}
 		else:
+			if not query:
+				return None
+			query	= query.strip()
 			params	= {
-				"action"			: "wbsearchentities",
+				"action"		: "wbsearchentities",
 				"search"		: query,
-				"language"	: self.lang,
+				"language"		: self.lang,
 				"format"		: "json"
 			}
-		data		= requests.get("https://www.wikidata.org/w/api.php",headers=headers,params=params)
+		data	= requests.get("https://www.wikidata.org/w/api.php",headers=headers,params=params)
 		result	= data.json()
 		if 'error' in result:	
 			raise Exception(result['error']['code'],result['error']['info'])
 		elif query and "search" in result and result["search"]:
-			if "id" in result["search"][0]:
-				return result["search"][0]["id"]
+			guess	= None
+			for item in result["search"]:
+				if "id" in item and "match" in item and "text" in item["match"] and "language" in item["match"]:
+					if item["match"]["language"]==self.lang:
+						if not guess: 
+							guess	= item["id"]
+						if item["match"]["text"].lower().strip()==query.lower():
+							return item["id"]
+				return guess
 		elif id and "entities" in result and result["entities"]:
 			if id in result["entities"] and result["entities"][id]:
 				return result["entities"][id]
@@ -82,7 +92,7 @@ class Crawler:
 		if data:
 			if "labels" in data:
 				if self.lang in data["labels"]:
-					 result["label"]			= data["labels"][self.lang]["value"]
+					 result["label"]		= data["labels"][self.lang]["value"]
 			if "descriptions" in data:
 				if self.lang in data["descriptions"]:
 					result["description"]	= data["descriptions"][self.lang]["value"]
@@ -92,67 +102,67 @@ class Crawler:
 					# humans
 					if key=="P21":		# sex
 						if data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"] in ("Q6581097","Q44148"):
-							result["sex"]					= "male"
+							result["sex"]			= "male"
 						elif data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"] in ("Q6581072","Q43445"):
-							result["sex"]					= "female"
+							result["sex"]			= "female"
 						else:
-							result["sex"]					= "other"
+							result["sex"]			= "other"
 					elif key=="P27":	# country of citizenship
 						result["country"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=="P106":	# occupation
 						result["occupation"]		= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=="P22":	# father
-						result["father"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+						result["father"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=="P25":	# mother
 						result["mother"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=="P40":	#children
 						result["number_of_children"]= len(data["claims"][key])
-					elif key=="P3373":# siblings
+					elif key=="P3373":	# siblings
 						result["number_of_siblings"]= len(data["claims"][key])
-					elif key=="P569": # date of birth
-						result["date_of_birth"]	= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["time"]
+					elif key=="P569":	# date of birth
+						result["date_of_birth"]		= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["time"]
 					elif key=="P19": 	# place of birth
 						result["place_of_birth"]	= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=="P570": 	# date of death
-						result["date_of_death"]	= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["time"]
+						result["date_of_death"]		= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["time"]
 					elif key=="P20": 	# place of death
-						result["place_of_death"]= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+						result["place_of_death"]	= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=="P509":	# cause of death
-						result["cause_of_death"]= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+						result["cause_of_death"]	= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					# locations
 					elif key=="P30":	# continent
 						result["continent"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=="P17":	# country
 						result["country"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=="P36":	# capital
-						result["capital"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+						result["capital"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=='P625':	# coordinate location
 						result['coordinates']		= str(data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["latitude"])+" "+str(data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["longitude"])
-					elif key=='P1082':#population
+					elif key=='P1082':	# population
 						result["population"]		= float(data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:])
-					elif key=='P2046':#area
+					elif key=='P2046':	# area
 						if "Q712226" in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: #km2
 							result["area"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:]+" km2"
-					elif key=="P2049":#width
+					elif key=="P2049":	# width
 						result["width"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:]
 						if "Q828224" in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
 							result["width"]				+= " km"
 						elif "Q11573"in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
 							result["width"]				+= " m"
-					elif key=="P2043":#length
-						result["length"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:]
+					elif key=="P2043":	# length
+						result["length"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:]
 						if "Q828224" in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
-							result["length"]				+= " km"
+							result["length"]			+= " km"
 						elif "Q11573"in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
-							result["length"]				+= " m"
-					elif key=="P2044":#elevation above sea level
-						result["height"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:]
+							result["length"]			+= " m"
+					elif key=="P2044":	# elevation above sea level
+						result["height"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:]
 						if "Q828224" in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
-							result["height"]				+= " km"
+							result["height"]			+= " km"
 						elif "Q11573"in data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["unit"]: 
-							result["height"]				+= " m"
+							result["height"]			+= " m"
 					# animals
-					elif key=="P4733":# produced sound
+					elif key=="P4733":	# produced sound
 						result["sound"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 					elif key=="P225":	# taxon name
 						result["latin"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]
@@ -168,10 +178,19 @@ class Crawler:
 					elif key=="P582":	# end time
 						result["end_date"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["time"]
 					elif key=="P169":	# chef executive officer
-						result["leader"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
-					elif key=="P6":	# head of government
-						result["leader"]				= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
-					elif key=="P1120":# number of deaths
-						result["deaths"]				= float(data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:])
-		return result		
+						result["leader"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+					elif key=="P6":		# head of government
+						result["leader"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+					elif key=="P1120":	# number of deaths
+						result["deaths"]			= float(data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["amount"][1:])
+					elif key=="P57": 	# director
+						result["director"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+					elif key=="P50":	#author
+						result["author"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+					elif key=="P61":	# discoverer or inventor
+						result["discoverer"]		= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+					elif key=="P575":	# time of discovery or invention
+						result["discovery_date"]	= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["time"]
+		return result
+		# ki találta fel
 					
