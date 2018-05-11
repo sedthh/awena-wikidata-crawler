@@ -212,6 +212,16 @@ class Crawler:
 							result["discoverer"]		= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
 						elif key=="P575":	# time of discovery or invention
 							result["discovery_date"]	= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["time"]
+						elif key=="P37":	# offical language
+							result["language"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+						elif key=="P38":	# currency
+							result["currency"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]["id"]
+						elif key=="P246":	# element symbol
+							result["formula"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]
+						elif key=="P274":	# chemical formula
+							result["formula"]			= data["claims"][key][0]["mainsnak"]["datavalue"]["value"]
+						
+						
 					except KeyError:
 						pass
 		return result
